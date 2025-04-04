@@ -36,6 +36,17 @@ app.get("/info/:itemNumber", async (req, res) => {
     }
 })
 
+// Purchase book by item number
+app.post("/purchase/:itemNumber", async (req, res) => {
+    try {
+        const response = await axios.post(`${config.services.order}/purchase/${req.params.itemNumber}`)
+        res.json(response.data)
+    } catch (error) {
+        console.error("Error in purchase:", error.message)
+        res.status(500).json({ error: "Failed to process purchase" })
+    }
+})
+
 // Start server
 app.listen(config.port, () => {
     console.log(`Gateway service running on port ${config.port}`)
