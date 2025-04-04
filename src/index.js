@@ -14,12 +14,6 @@ app.get("/health", (req, res) => {
     res.json({ message: "Welcome to Emporium Gateway Service" })
 })
 
-// Start server
-app.listen(config.port, () => {
-    console.log(`Gateway service running on port ${config.port}`)
-    console.log("Service URLs:", config.services)
-})
-
 // Search books by topic
 app.get("/search/:topic", async (req, res) => {
     try {
@@ -29,4 +23,21 @@ app.get("/search/:topic", async (req, res) => {
         console.error("Error in search:", error.message)
         res.status(500).json({ error: "Failed to search books" })
     }
+})
+
+// Get book info by item number
+app.get("/info/:itemNumber", async (req, res) => {
+    try {
+        const response = await axios.get(`${config.services.catalog}/info/${req.params.itemNumber}`)
+        res.json(response.data)
+    } catch (error) {
+        console.error("Error in info:", error.message)
+        res.status(500).json({ error: "Failed to get book information" })
+    }
+})
+
+// Start server
+app.listen(config.port, () => {
+    console.log(`Gateway service running on port ${config.port}`)
+    console.log("Service URLs:", config.services)
 })
