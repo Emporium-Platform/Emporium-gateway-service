@@ -1,131 +1,81 @@
 # Emporium Gateway Service
 
-The Gateway Service is a crucial component of the Emporium platform, serving as the API gateway that handles routing and communication between client applications and various microservices (catalog and order services).
+Node.js-based gateway service for the Emporium online bookstore, featuring caching and load balancing capabilities.
 
 ## Features
 
-- Centralized API gateway for the Emporium platform
-- Request routing to appropriate microservices
-- Health check endpoint
-- Error handling and logging
-- CORS support
-
-## Tech Stack
-
-- Node.js
-- Express.js
-- Axios for HTTP requests
-- CORS middleware
-- Docker support
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/Emporium-Platform/Emporium-gateway-service.git
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Start the service:
-```bash
-# Development mode with hot-reload
-npm run dev
-
-# Production mode
-npm start
-```
+- In-memory LRU caching for read operations
+- Round-robin load balancing
+- Cache invalidation on writes
+- Cache statistics monitoring
+- Support for multiple catalog and order service instances
 
 ## Environment Variables
 
-The service can be configured using the following environment variables:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| PORT | Port number for the gateway service | 3000 |
-| CATALOG_SERVICE_URL | URL of the catalog service | http://localhost:5000 |
-| ORDER_SERVICE_URL | URL of the order service | http://localhost:4000 |
+- `PORT`: Server port (default: 3000)
+- `CATALOG_SERVICES`: Comma-separated catalog service URLs
+- `ORDER_SERVICES`: Comma-separated order service URLs
+- `CACHE_ENABLED`: Enable/disable caching (default: true)
+- `CACHE_CAPACITY`: Maximum cache entries (default: 100)
+- `CACHE_TTL`: Cache entry lifetime in ms (default: 300000)
 
 ## API Endpoints
+
+### Book Operations
+```
+GET /search/:topic
+Returns books matching the topic (cached)
+
+GET /info/:itemNumber
+Returns book details (cached)
+
+POST /purchase/:itemNumber
+Process book purchase (invalidates cache)
+```
+
+### Cache Operations
+```
+GET /cache/stats
+Returns cache statistics
+
+POST /cache/invalidate
+Body: { "key": "cache-key" }
+Invalidates specific cache entry
+```
 
 ### Health Check
 ```
 GET /health
-```
-Returns the health status of the service.
-
-**Response**:
-```json
-{
-    "status": "healthy"
-}
+Returns service health status
 ```
 
-### Search Books by Topic
-```
-GET /search/:topic
-```
-Searches for books based on the provided topic.
-
-**Parameters**:
-- `topic` (path parameter): The topic to search for
-
-**Response**: List of books matching the topic.
-
-### Get Book Information
-```
-GET /info/:itemNumber
-```
-Retrieves detailed information about a specific book.
-
-**Parameters**:
-- `itemNumber` (path parameter): The unique identifier of the book
-
-**Response**: Detailed book information.
-
-### Purchase Book
-```
-POST /purchase/:itemNumber
-```
-Initiates a purchase transaction for a specific book.
-
-**Parameters**:
-- `itemNumber` (path parameter): The unique identifier of the book to purchase
-
-**Response**: Purchase confirmation details.
-
-## Running with Docker Compose
-
-The gateway service is part of a multi-service Docker Compose setup that includes the catalog-service and order-service.
-
-### Step 1: Start the Services
-To build and run the gateway, catalog, and order services together, navigate to the project directory containing the docker-compose.yml file and run:
+## Running the Service
 
 ```bash
 docker-compose up --build
 ```
 
-This command will:
-- Build fresh images for emporium-gateway-service, emporium-catalog-service, and emporium-order-service
-- Start each service in its own container and connect them over a shared network
-- Expose the gateway service on port 3000, the catalog service on port 5000, and the order service on port 4000
+Service will be available at:
+- Gateway: http://localhost:3000
+- Connects to:
+  - Catalog Primary: http://localhost:5001
+  - Catalog Backup: http://localhost:5002
 
-## Error Handling
+## Implementation Notes
 
-The service includes comprehensive error handling:
-- Service-specific error responses
-- Global error handler for unhandled exceptions
-- Error logging for debugging
-- Appropriate HTTP status codes and error messages
+### Caching
+- LRU (Least Recently Used) implementation
+- Automatic invalidation on write operations
+- Cache statistics tracking
+- Configurable cache size and TTL
 
-## Development
+### Load Balancing
+- Round-robin distribution
+- Separate balancing for catalog and order services
+- Write operations directed to primary catalog
+- Even distribution of read requests
 
-To run the service in development mode with hot-reload:
-```bash
-npm run dev
-```
-
-The service will automatically restart when changes are detected in the source code.
+### Error Handling
+- Automatic failover between replicas
+- Circuit breaking for failed services
+- Detailed error logging
